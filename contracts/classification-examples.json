@@ -1,0 +1,139 @@
+{
+  "taxonomy_version": "1.0",
+  "status": "manual_design_fixtures_not_model_results",
+  "examples": [
+    {
+      "id": "month_rebate",
+      "provenance": "illustrative_regression_excerpt",
+      "text": "Get a Month On Us, plus up to $200 back.",
+      "expected_type": "offer",
+      "expected_mechanisms": ["free_period", "rebate"],
+      "amount_expectations": [{"quote": "up to $200 back", "role": "rebate", "qualifier": "up_to"}],
+      "rule": "Do not invent an expiry or convert an upper limit to guaranteed value."
+    },
+    {
+      "id": "hulu_value",
+      "provenance": "illustrative_regression_excerpt",
+      "text": "GET IT WITH ALL-IN. Hulu On Us. $11.99/mo value",
+      "expected_type": "benefit",
+      "expected_mechanisms": [],
+      "amount_expectations": [{"quote": "$11.99/mo value", "role": "stated_value", "qualifier": "exact"}],
+      "rule": "Included entitlement; stated value must not populate payable price."
+    },
+    {
+      "id": "ny_affordable",
+      "provenance": "illustrative_regression_excerpt",
+      "text": "New York residents may qualify for our $15/month Home Internet plan.",
+      "expected_type": "offer",
+      "expected_mechanisms": ["affordable_access"],
+      "amount_expectations": [{"quote": "$15/month", "role": "payable_price", "qualifier": "exact"}],
+      "required_geography": "NY",
+      "needs_review": true,
+      "rule": "Keep regional qualification; income conditions are unknown from this text alone."
+    },
+    {
+      "id": "student_each",
+      "provenance": "illustrative_regression_excerpt",
+      "text": "Just $30/month each for a student phone plan and 5G home internet.",
+      "expected_type": "offer",
+      "expected_mechanisms": ["bundle_savings"],
+      "amount_expectations": [{"quote": "$30/month each", "role": "payable_price", "qualifier": "exact"}],
+      "rule": "Preserve per-component unit, student eligibility and mixed products; do not invent a total."
+    },
+    {
+      "id": "ooma_commitment",
+      "provenance": "illustrative_regression_excerpt",
+      "text": "Get a FREE Ooma Telo Air device (a $129.99 value) when you sign up for Ooma Premier ($9.99/month) for 18 months.",
+      "expected_type": "offer",
+      "expected_mechanisms": ["free_item"],
+      "amount_expectations": [
+        {"quote": "$129.99 value", "role": "stated_value", "qualifier": "exact"},
+        {"quote": "$9.99/month", "role": "payable_price", "qualifier": "exact"}
+      ],
+      "rule": "Attach the 18-month paid-service condition and partner product."
+    },
+    {
+      "id": "support_value",
+      "provenance": "illustrative_regression_excerpt",
+      "text": "TECHEDGE SUITE. 24/7 live assistance with video support. $8.25/mo. value",
+      "expected_type": "benefit",
+      "expected_mechanisms": [],
+      "amount_expectations": [{"quote": "$8.25/mo. value", "role": "stated_value", "qualifier": "exact"}],
+      "rule": "Do not convert stated value into a separate service charge."
+    },
+    {
+      "id": "annual_savings",
+      "provenance": "illustrative_regression_excerpt",
+      "text": "Save your family up to $1000/yr when you bundle.",
+      "expected_type": "offer",
+      "expected_mechanisms": ["bundle_savings"],
+      "amount_expectations": [{"quote": "up to $1000/yr", "role": "savings", "qualifier": "up_to"}],
+      "needs_review": true,
+      "rule": "Full plan/line/autopay conditions must be linked from the associated description and terms."
+    },
+    {
+      "id": "delivery_switch",
+      "provenance": "illustrative_regression_excerpt",
+      "text": "Switch to T-Mobile 5G Home Internet and get your gateway the same day with free DoorDash delivery.",
+      "expected_type": "offer",
+      "expected_mechanisms": ["fee_waiver"],
+      "amount_expectations": [],
+      "rule": "Specific switch-linked concession; no invented dollar value."
+    },
+    {
+      "id": "tuesdays",
+      "provenance": "illustrative_regression_excerpt",
+      "text": "Get exclusive perks for each eligible home internet line. Find them every Tuesday in the T-Life app.",
+      "expected_type": "benefit",
+      "expected_mechanisms": [],
+      "amount_expectations": [],
+      "rule": "Ongoing perks program, not evidence of individual current offers."
+    },
+    {
+      "id": "award",
+      "provenance": "meeting_paraphrase",
+      "text": "Customer satisfaction recognized by J.D. Power.",
+      "expected_type": "marketing_claim",
+      "expected_mechanisms": [],
+      "amount_expectations": [],
+      "rule": "Attributed claim only; not an independently verified award."
+    },
+    {
+      "id": "guarantee_supported",
+      "provenance": "synthetic",
+      "text": "Your monthly plan price is guaranteed for five years under the included Price Guarantee terms.",
+      "expected_type": "benefit",
+      "expected_mechanisms": [],
+      "amount_expectations": [],
+      "rule": "Duration is not a source-stated calendar expiry."
+    },
+    {
+      "id": "ordinary_fiber_price",
+      "provenance": "synthetic",
+      "text": "Fiber 1 Gig plan: $80/month.",
+      "expected_type": "product_listing",
+      "expected_mechanisms": [],
+      "amount_expectations": [{"quote": "$80/month", "role": "payable_price", "qualifier": "exact"}],
+      "rule": "No evidence of a promotional concession; retain price as an ordinary listing."
+    },
+    {
+      "id": "temporary_streaming",
+      "provenance": "synthetic",
+      "text": "Get free streaming for 3 months when you switch.",
+      "expected_type": "offer",
+      "expected_mechanisms": ["free_period"],
+      "amount_expectations": [],
+      "rule": "Timed signup incentive, unlike an ongoing included subscription."
+    },
+    {
+      "id": "unattached_legal",
+      "provenance": "synthetic",
+      "text": "Restrictions apply.",
+      "expected_type": "other",
+      "expected_mechanisms": [],
+      "amount_expectations": [],
+      "needs_review": true,
+      "rule": "Insufficient linkage; keep for review rather than manufacture a proposition."
+    }
+  ]
+}

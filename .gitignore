@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+.databricks/
+.DS_Store
+outputs/
+artifacts/
+*.xlsx
+*.parquet
+*.log
