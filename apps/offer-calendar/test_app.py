@@ -27,8 +27,9 @@ def test_filters_empty_day_and_reset(monkeypatch):
     assert any("What changed" in m.value for m in at.markdown)
     assert len(at.metric) == 0
     assert not any(e.label == "Comparison coverage" for e in at.expander)
-    assert any("product-nav" in m.value and "offer-calendar-hsi-" in m.value for m in at.markdown)
-    at.radio[0].set_value("Data inspection").run()
+    assert at.radio(key="service_view").value == "Fiber"
+    assert not any("example.com" in m.value and "product-nav" in m.value for m in at.markdown)
+    at.radio(key="workspace_view").set_value("Data inspection").run()
     assert not at.exception
     assert any(e.label == "Comparison coverage" for e in at.expander)
     for brand, count in [("AT&T", "2"), ("Verizon", "—"), ("All brands", "3")]:
@@ -42,7 +43,23 @@ def test_filters_empty_day_and_reset(monkeypatch):
     at.text_input[0].set_value("no-matching-record").run()
     assert not at.exception
     assert any("No records match" in message.value for message in at.info)
-    at.radio[0].set_value("Calendar").run()
+    at.radio(key="workspace_view").set_value("Calendar").run()
     assert not at.exception
     assert len(at.metric) == 0
     assert len(at.selectbox(key="browse_offer").options) == 3
+
+
+def test_demo_opens_populated_and_service_switch_stays_local(monkeypatch):
+    monkeypatch.setenv("OFFER_CALENDAR_PREVIEW", "1")
+    at = AppTest.from_file(str(Path(__file__).with_name("app.py")), default_timeout=20).run()
+    assert not at.exception
+    assert at.date_input[0].value == date(2026, 9, 16)
+    assert any("Amount changed" in item.label for item in at.expander)
+    at.radio(key="service_view").set_value("Fixed wireless").run()
+    at.selectbox(key="brand_filter").select("Verizon").run()
+    assert not at.exception
+    calendar_html = next(m.value for m in at.markdown if 'class="calendar-scroll"' in m.value)
+    assert "Collection incomplete" in calendar_html
+    selected_cell = calendar_html.split('aria-current="date"')[1] if 'aria-current="date"' in calendar_html else calendar_html.split('class="day selected"')[1]
+    assert "Collection incomplete" in selected_cell.split("</a>")[0]
+    assert any(m.value == "Collection incomplete" for m in at.markdown)

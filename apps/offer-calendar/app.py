@@ -16,7 +16,7 @@ from email_alerts import draft_change_email
 from dashboard_model import SOURCE_NAMES, amount_summary, comparison_runs, comparison_status, daily_view, scope_records, inventory_records, calendar_status
 from promotion_policy import deal_details, deal_headline
 from data_access import load_month, read_volume_image_sql
-from preview_data import preview_frames
+from preview_data import DEMO_DAY, preview_frames
 from presentation import business_summary, highlighted_evidence, markdown_literal, product_links, screenshot_html
 
 APP_NAME = os.environ.get("DATABRICKS_APP_NAME", "").lower()
@@ -131,11 +131,9 @@ def render_calendar(runs, changes, selected, brand):
                     labels.append(f'<small>+{len(dc)-3} more changes</small>')
             elif day <= today:
                 label = calendar_status(runs, day, expected_sources)
-                if label == "Collection incomplete":
-                    label = "No change"
                 labels.append(f'<span class="muted">{label}</span>')
             classes = (" selected" if selected == day else "") + (" changed" if len(dc) else "")
-            query = html.escape(urlencode({"day": day.isoformat(), "brand": brand}))
+            query = html.escape(urlencode({"day": day.isoformat(), "brand": brand, "service": service_choice}))
             parts.append(f'<a class="day{classes}" href="?{query}" target="_self"><span class="date">{day.day}</span>{"".join(labels)}</a>')
     parts.append('</div></div>')
     st.markdown("".join(parts), unsafe_allow_html=True)
@@ -158,14 +156,33 @@ a.day{color:#252a2c;text-decoration:none!important}a.day:hover{background:#fff;b
 </style>""", unsafe_allow_html=True)
 
 today = datetime.now(ZoneInfo("America/Los_Angeles")).date()
+default_day = DEMO_DAY if preview_mode else today
 if "selected_day" not in st.session_state:
     try:
-        st.session_state.selected_day = date.fromisoformat(st.query_params.get("day", today.isoformat()))
+        st.session_state.selected_day = date.fromisoformat(st.query_params.get("day", default_day.isoformat()))
     except ValueError:
-        st.session_state.selected_day = today
+        st.session_state.selected_day = default_day
 selected = st.session_state.selected_day
 token = None if preview_mode else st.context.headers.get("x-forwarded-access-token")
-st.title(f"{VIEW_NAME} offer calendar")
+st.markdown('<p class="eyebrow">PUBLIC OFFER OBSERVATIONS</p>', unsafe_allow_html=True)
+st.title("Offer Calendar")
+st.markdown("See what changed. Check the original evidence.")
+service_choice = VIEW_NAME
+if preview_mode:
+    st.info("Interactive demo · Synthetic observations, not current provider offers.")
+    services = {"Fiber": "fiber", "Fixed wireless": "fixed_wireless", "All services": "all"}
+    if "service_view" not in st.session_state:
+        initial_service = st.query_params.get("service", "Fixed wireless" if PRODUCT_VIEW == "fixed_wireless" else "Fiber")
+        st.session_state.service_view = initial_service if initial_service in services else "Fiber"
+    service_choice = st.radio("Internet service", list(services), key="service_view", horizontal=True)
+    PRODUCT_VIEW = services[service_choice]
+    VIEW_NAME = {"fiber": "Fiber", "fixed_wireless": "HSI", "all": "Home internet"}[PRODUCT_VIEW]
+    st.query_params["service"] = service_choice
+    with st.expander("Start here · a 60-second walkthrough"):
+        st.markdown("1. Keep **Fiber** and **September 16, 2026** selected.\n"
+                    "2. Open the **Amount changed** entry and compare the highlighted original text.\n"
+                    "3. Switch to **Data inspection** for source coverage and captured records.\n"
+                    "4. Try **Fixed wireless → Verizon** on the same date to see an incomplete capture.")
 
 
 def select_date():
@@ -189,18 +206,17 @@ with refresh_col:
         get_month_data.clear()
         cached_volume_image.clear()
         st.rerun()
-links = product_links(selected, brand)
-st.markdown('<nav class="product-nav" aria-label="Internet service">' + ''.join(f'<a class="{"active" if name == VIEW_NAME else ""}" href="{html.escape(url, quote=True)}" target="_self">{name}</a>' for name, url in links.items()) + '</nav>', unsafe_allow_html=True)
+if not preview_mode:
+    links = product_links(selected, brand)
+    st.markdown('<nav class="product-nav" aria-label="Internet service">' + ''.join(f'<a class="{"active" if name == VIEW_NAME else ""}" href="{html.escape(url, quote=True)}" target="_self">{name}</a>' for name, url in links.items()) + '</nav>', unsafe_allow_html=True)
 page_view = st.radio("Workspace", ["Calendar", "Data inspection"], key="workspace_view", horizontal=True, label_visibility="collapsed")
 try:
-    with st.spinner("Loading Databricks data…"):
+    with st.spinner("Loading sample observations…" if preview_mode else "Loading saved observations…"):
         raw_runs, raw_offers = get_month_data(selected.year, selected.month, preview_mode, token)
 except Exception as error:
     st.error("Data could not be loaded. This does not mean there are no offers.")
     st.code(f"{type(error).__name__}: {error}")
     st.stop()
-if preview_mode:
-    st.warning("Layout preview — synthetic sample data, not live collection results.")
 runs, offers = daily_view(raw_runs, raw_offers)
 if PRODUCT_VIEW != "all":
     runs = runs[runs.source_product_type.eq(PRODUCT_VIEW)]
@@ -239,8 +255,7 @@ def render_deal_details(row):
 
 def render_main():
     st.subheader(f"{selected:%B %Y}")
-    st.caption("Select a day to see what changed. Open a change for before / after screenshots and the original evidence. Changes are pending review.")
-    st.caption("Track promotions, included benefits and AT&T plan pricing. The inventory below shows what was observed on the selected day, even when nothing changed.")
+    st.caption("Select a day, then open a change to compare original wording. Every change is a candidate for review.")
     render_calendar(runs, changes, selected, brand)
     st.subheader(f"{selected:%B %d, %Y} · Changes")
     st.caption("Compared with the previous successful capture using the same collection method — not necessarily the previous day. Dates are observation dates, not offer effective dates.")
@@ -250,13 +265,13 @@ def render_main():
         st.info(f"{comparable} of {len(day_runs)} observed sources compared. New sources establish their first observation.")
     if day_changes.empty:
         status = calendar_status(runs, selected, expected_sources)
-        st.write("No change" if status == "Collection incomplete" else status)
+        st.write(status)
         if comparable:
             st.caption("No supported changes found in compared records. Missing records do not prove an offer ended; coverage is limited to the monitored pages.")
     else:
         for index, event in day_changes.reset_index(drop=True).iterrows():
             row = event.after or event.before or {}
-            with st.expander(markdown_literal(f"{event_label(event)} — {business_summary(event)}")):
+            with st.expander(markdown_literal(f"{event_label(event)} · {business_summary(event)}"), expanded=preview_mode and index == 0):
                 st.caption(f"Pending review · Compared {event.before_date} → {event.after_date}")
                 st.markdown("**What changed**")
                 st.markdown(markdown_literal(business_summary(event)))
@@ -293,7 +308,7 @@ def render_main():
             st.text(str(message["Subject"]))
             st.text(message.get_content())
             st.download_button("Download email draft", message.as_bytes(), file_name=f"offer-changes-{selected}.eml", mime="message/rfc822")
-        st.caption("Automatic delivery is managed by the separate daily Databricks change alert. This preview does not send email.")
+        st.caption("Download a draft for review. Email delivery is not configured in this public demo.")
     render_inventory()
 
 
@@ -416,4 +431,4 @@ if page_view == "Calendar":
 else:
     st.subheader(f"{selected:%B %d, %Y} · Data inspection")
     render_inspection()
-st.caption("Databricks Unity Catalog · Observed inventory and evidence-gated changes · v2026.09.29")
+st.caption("Offer Calendar · Synthetic demo" if preview_mode else "Offer Calendar · Saved observations from Databricks Unity Catalog")
