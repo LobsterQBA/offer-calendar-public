@@ -22,16 +22,24 @@ def preview_frames(month_start: date) -> tuple[pd.DataFrame, pd.DataFrame]:
     offer_rows = []
     for day_index, day in enumerate(days):
         for source_index, (source_id, brand, product_type) in enumerate(sources):
-            observed = datetime(day.year, day.month, day.day, 16, source_index, tzinfo=timezone.utc)
+            observed = datetime(
+                day.year, day.month, day.day, 16, source_index, tzinfo=timezone.utc
+            )
             run_id = f"preview_{day_index}_{source_index}"
-            coverage = "partial" if source_id == "verizon_5g_home" and day_index == 4 else "complete"
+            coverage = (
+                "partial"
+                if source_id == "verizon_5g_home" and day_index == 4
+                else "complete"
+            )
             run_rows.append(
                 {
                     "run_id": run_id,
                     "source_id": source_id,
                     "scheduled_for": observed,
                     "observed_at": observed,
-                    "status": "fetch_failed" if source_id == "verizon_5g_home" and day_index == 4 else "success",
+                    "status": "fetch_failed"
+                    if source_id == "verizon_5g_home" and day_index == 4
+                    else "success",
                     "coverage": coverage,
                     "brand": brand,
                     "source_product_type": product_type,
@@ -55,9 +63,16 @@ def preview_frames(month_start: date) -> tuple[pd.DataFrame, pd.DataFrame]:
                     amount = "$50" if day_index < 4 else "$45"
                 # Each fixture has an explicit incentive and its original wording.
                 monthly = source_id in {"tmobile_hsi_deals", "tmobile_fiber_deals"}
-                title = "First month on us" if monthly else f"Gift card for new customers {offer_index + 1}"
-                raw_text = (f"{title}. Then {amount} per month for eligible new customers."
-                            if monthly else f"{title}. Get a {amount} gift card with eligible internet.")
+                title = (
+                    "First month on us"
+                    if monthly
+                    else f"Gift card for new customers {offer_index + 1}"
+                )
+                raw_text = (
+                    f"{title}. Then {amount} per month for eligible new customers."
+                    if monthly
+                    else f"{title}. Get a {amount} gift card with eligible internet."
+                )
                 offer_rows.append(
                     {
                         "snapshot_id": f"snapshot_{run_id}_{offer_index}",

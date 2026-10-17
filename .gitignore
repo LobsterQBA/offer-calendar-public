@@ -13,3 +13,5 @@ artifacts/
 *.xlsx
 *.parquet
 *.log
+output/
+.playwright-cli/

@@ -1,4 +1,5 @@
 """Start the synthetic demo from any directory: python demo.py."""
+
 import os
 from pathlib import Path
 import subprocess
