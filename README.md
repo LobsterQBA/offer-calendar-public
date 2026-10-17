@@ -1,60 +1,124 @@
 # Offer Calendar
 
-An evidence-first dashboard for observing public home-internet offers across T-Mobile, AT&T and Verizon. Compare daily observations, review original wording, and distinguish promotions, included benefits and plan pricing.
+**Track public internet offers. See what changed. Check the evidence.**
 
-This is a sanitized standalone source release. The local demo uses explicitly illustrative records. No customer data, internal captures, deployment endpoints, credentials or original Git history are included. Example prices and excerpts are test inputs, not current offers.
+[![Offline tests](https://github.com/LobsterQBA/offer-calendar-public/actions/workflows/tests.yml/badge.svg)](https://github.com/LobsterQBA/offer-calendar-public/actions/workflows/tests.yml)
 
-## Run the local demo
+Offer Calendar turns captured home-internet offer pages into a daily calendar of reviewable changes. It covers T-Mobile, AT&T and Verizon across fiber and fixed wireless, keeping the original wording behind each candidate change.
 
-Python 3.11 or newer:
+The problem: checking provider pages by hand makes it hard to distinguish a real price or benefit change from rewritten extraction text or a failed page capture. This project combines rendered-page collection, source-quote validation, conservative comparison rules and a Streamlit review interface.
+
+**This public version includes a working local demo with synthetic observations.** The prices, dates and screenshots below illustrate the workflow; they are not current provider offers.
+
+[Try the demo](#try-it-locally) · [Read the examples](examples/README.md) · [Explore the code](#where-to-start-reading) · [Cloud integration](docs/databricks.md)
+
+## A month of observations, one change to inspect
+
+![Synthetic demo: monthly calendar with a selected September 16 amount-change candidate](docs/images/calendar.png)
+
+Select a day and brand to see observed changes. Switch between **Fiber**, **Fixed wireless** and **All services**. The calendar keeps missing sources and incomplete collection visible alongside change candidates.
+
+Open a change to inspect the original text before and after:
+
+![Synthetic demo: original text comparison highlighting a monthly amount changing from $50 to $45](docs/images/evidence-comparison.png)
+
+Here, the saved wording changes from **$50 per month** to **$45 per month**. Both observations describe the same offer. The app highlights the literal difference and records a change candidate for human review. The comparison uses the previous successful capture, which may be several days earlier.
+
+## Three situations, three different conclusions
+
+All examples below use synthetic input and run through the same comparison functions as the dashboard.
+
+| What happened? | Result | Why? |
+| --- | --- | --- |
+| The original monthly amount changes from **$50** to **$45** | One change candidate | The source text supports a change to a matching amount and period. |
+| The AI rewrites its description; the saved source text stays identical | **No change** | A different generated summary does not establish a source change. |
+| The next page capture fails and produces no offer record | **Collection incomplete** | Missing evidence cannot establish that the offer disappeared. |
+
+Run the examples without a browser or credentials:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements-dev.txt
-cd apps/offer-calendar
-OFFER_CALENDAR_PREVIEW=1 DATABRICKS_APP_NAME=offer-calendar-fiber streamlit run app.py
+python3 examples/compare_offers.py
 ```
 
-Use `offer-calendar-hsi` for the fixed-wireless view. The demo needs no Databricks account or extraction API key. Preview screenshots are intentionally absent; the interface reports missing evidence.
+The first example prints:
 
-## How it works
+```text
+1. Original source price changes: $50/mo -> $45/mo
+  Result: Monthly amount: $50 → $45
+  Change candidates: 1
+  Evidence check: source_backed_amount_change
+```
+
+[Walk through all three examples →](examples/README.md)
+
+## Try it locally
+
+Use Python 3.11 or newer. From a terminal:
+
+```bash
+git clone https://github.com/LobsterQBA/offer-calendar-public.git
+cd offer-calendar-public
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements-dev.txt
+python3 demo.py
+```
+
+On Windows, activate the environment with `.venv\Scripts\activate` instead. Open the local URL printed by Streamlit. The demo starts on **September 16, 2026**, with **Fiber** selected and the amount-change example expanded. It requires no API keys or Databricks account.
+
+Things to try:
+
+1. Read the highlighted **$50 → $45** comparison, then show the supporting offer details.
+2. Switch to **Data inspection** to explore captured records and source coverage.
+3. Select **Fixed wireless**, then **Verizon**, to see an incomplete capture on the same date.
+
+The demo contains no historical provider screenshots. It labels missing screenshot evidence explicitly. The README images are screenshots of the synthetic local interface.
+
+## How the pieces fit together
 
 ```mermaid
 flowchart LR
-    A[Public provider pages] --> B[Rendered page capture]
-    B --> C[Extraction and verbatim evidence checks]
+    A[Public provider pages] --> B[Rendered capture and extraction]
+    B --> C[Verbatim quote validation]
     C --> D[Saved observations and evidence]
-    D --> E[Comparable-run change detection]
-    E --> F[Calendar and daily inventory]
+    D --> E[Comparison rules]
+    S[Synthetic demo records] --> E
+    E --> F[Calendar and original-text review]
 ```
 
-- `apps/offer-calendar/`: Streamlit interface, read-only data adapter, comparison logic, synthetic preview and tests.
-- `collector/`: standalone rendered-page and extraction runtime plus offline regression tests. Import does not start collection.
-- `docs/taxonomy.md`, `prompts/`, `contracts/`: an earlier classification design and manually labelled contract examples. These are not model evaluation results.
-- `sql/schema_v3_draft.sql`: an eight-table design proposal using an example namespace. This is separate from the dashboard's existing five-table adapter and is not a live backend bootstrap.
+The optional collector captures rendered pages and checks extracted fields against the original wording before saving records. The dashboard reads those observations, finds comparable captures and presents candidate changes with evidence. The local demo supplies synthetic records directly to the review workflow.
 
-The dashboard uses the latest attempt per source per Pacific calendar day. A failed attempt is not replaced with an earlier success. Material changes require comparable source evidence; missing capture does not prove absence of offers. Observation dates do not establish campaign start/end dates. Machine-detected events remain review candidates.
+Three decisions keep the results inspectable:
 
-## Optional Databricks integration
+- **Compare original evidence.** Model summaries and formatting differences alone do not establish a material change.
+- **Keep observation history honest.** Use the latest attempt per source per Pacific day, including failed attempts. A collection-method change establishes a new baseline.
+- **Preserve uncertainty.** Offer additions/removals require complete comparable captures. Observation dates do not prove campaign effective dates, and every detected change remains pending review.
 
-Set `OFFER_CALENDAR_CATALOG`, `OFFER_CALENDAR_SCHEMA`, `DATABRICKS_HOST` and `DATABRICKS_WAREHOUSE_ID` for your own environment. The adapter expects the source, run, snapshot, card-screenshot and page-evidence tables named in `data_access.py`; those live schemas and data are not supplied. Set up authentication, table permissions and a screenshot volume yourself. `app.yaml` is a generic Databricks App entry point using an attached SQL warehouse resource; it does not provision infrastructure.
+## Where to start reading
 
-Set `OFFER_CALENDAR_HSI_URL` and `OFFER_CALENDAR_FIBER_URL` for cross-view links. Defaults use reserved example domains. `.env.example` is documentation; variables must be exported or injected by your deployment.
+| If you want to understand… | Start here |
+| --- | --- |
+| A complete comparison with small, readable input | [`examples/compare_offers.py`](examples/compare_offers.py) |
+| How the app decides whether something changed | [`change_logic.py`](apps/offer-calendar/change_logic.py) |
+| Daily records, source coverage and comparison eligibility | [`dashboard_model.py`](apps/offer-calendar/dashboard_model.py) |
+| Calendar presentation and visual styling | [`calendar_view.py`](apps/offer-calendar/calendar_view.py), [`styles.css`](apps/offer-calendar/styles.css) |
+| The interactive dashboard and its synthetic data | [`app.py`](apps/offer-calendar/app.py), [`preview_data.py`](apps/offer-calendar/preview_data.py) |
+| Rendered capture, extraction and quotation checks | [`collector/collector.py`](collector/collector.py) |
+| Classification design and hand-labelled examples | [`docs/taxonomy.md`](docs/taxonomy.md), [`contracts/`](contracts/) |
 
-The collector requires a Spark/Databricks runtime, your own tables and volume, Playwright with Chromium, the `scrapegraph-py` package, and `SCRAPEGRAPHAI_API_KEY`. In that environment, load `collector/collector.py`, call `configure(spark, dbutils)`, then explicitly invoke `run_collection()`. Collection calls a paid external service and appends observations. No collection or deployment was performed as part of this release. Provider HTML and API compatibility must be verified before live use.
+## Verify the project
 
-Email functionality only prepares drafts/digest text; it does not send messages or include recipients.
-
-## Verify offline
-
-From the repository root:
+From the repository root, with dependencies installed:
 
 ```bash
-python -m pytest apps/offer-calendar collector -q
-python contracts/validate_design.py
+python3 -m pytest apps/offer-calendar collector -q
+python3 contracts/validate_design.py
 ```
 
-Tests exercise comparison gates, quotation checks, classification, missing coverage, screenshot matching, synthetic UI interactions and draft parity. They do not certify live extraction accuracy or production readiness.
+The offline suite covers material-change gates, source quotations, classification, failed captures, screenshot matching, synthetic UI interactions and email drafts. The design check validates contract consistency; it does not measure model accuracy.
 
-See [PUBLIC_RELEASE.md](PUBLIC_RELEASE.md) for the release boundary.
+## Using your own data
+
+The demo is ready to explore locally. Connecting live observations requires your own Databricks tables, volume, SQL warehouse and authentication; paid extraction also needs a ScrapeGraphAI key. See the [cloud integration guide](docs/databricks.md) for the boundary between the existing adapter and the separate draft schema.
+
+This repository is a sanitized source release with fresh Git history. Internal data, credentials and deployment endpoints are excluded. Email features prepare drafts and digest text; delivery is not configured. See [PUBLIC_RELEASE.md](PUBLIC_RELEASE.md) for what is included.

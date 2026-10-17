@@ -2,9 +2,9 @@
 
 This release was assembled from an explicit file allowlist in a new repository with fresh history.
 
-Included: application source and tests, a standalone collection module with offline tests, illustrative preview records, and classification/schema design examples.
+Included: application source and tests, a standalone collection module with offline tests, illustrative preview records, screenshots of the synthetic local demo, and classification/schema design examples.
 
-Excluded: original Git history, internal audits and meeting/handoff notes, cloud job exports and schedules, business findings and manifests, workbooks, captures, screenshots, generated diagrams, local tool state, production logs and deployment profiles. No email recipients or production data are bundled.
+Excluded: original Git history, internal audits and meeting/handoff notes, cloud job exports and schedules, business findings and manifests, workbooks, production captures and screenshots, generated internal diagrams, local tool state, production logs and deployment profiles. No email recipients or production data are bundled.
 
 Replaced: organization-specific catalog/schema names, workspace URLs, employee paths and names, application endpoints and extraction credential lookup. Live integration now requires user-supplied environment configuration. Commit attribution uses the publisher's GitHub noreply address.
 
